@@ -1,0 +1,42 @@
+' ===================================================
+' UserForm Anleitung:
+' Im VBA-Editor: Einfügen → UserForm
+' Form umbenennen zu: frmTermin
+' Dann folgende Controls hinzufügen:
+'
+'  Label:    lblTitle      (oben, groß)
+'  Label:    "Name:"
+'  TextBox:  txtName
+'  Label:    "KG:"
+'  TextBox:  txtKG
+'  Label:    "EZ:"
+'  TextBox:  txtEZ
+'  Label:    "Telefon:"
+'  TextBox:  txtTel
+'  Label:    "Anliegen:"
+'  TextBox:  txtAnliegen   (MultiLine = True)
+'  Button:   cmdSpeichern  (Caption = "Speichern")
+'  Button:   cmdAbbrechen  (Caption = "Abbrechen")
+'  Button:   cmdLoeschen   (Caption = "Termin löschen", BackColor = rot)
+'
+' Code für die Form:
+' ===================================================
+
+Private Sub UserForm_Initialize()
+    Me.BackColor = RGB(240, 245, 252)
+    Me.Caption = "Termin eintragen"
+    Me.Width = 320
+    Me.Height = 380
+End Sub
+
+Private Sub cmdSpeichern_Click()
+    Call modKalender.SpeichereTermin
+End Sub
+
+Private Sub cmdAbbrechen_Click()
+    Unload Me
+End Sub
+
+Private Sub cmdLoeschen_Click()
+    Call modKalender.LoescheTermin
+End Sub

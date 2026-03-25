@@ -1,0 +1,12 @@
+' ===================================================
+' DIESEN CODE ins Kalender-Sheet einfügen:
+' VBA-Editor → Doppelklick auf "Kalender" (linke Liste)
+' ===================================================
+
+Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+    If Target.Row < 2 Or Target.Column < 2 Then Exit Sub
+    If Target.Cells.Count > 1 Then Exit Sub
+    Application.EnableEvents = False
+    Call modKalender.OeffneTerminDialog(Target)
+    Application.EnableEvents = True
+End Sub

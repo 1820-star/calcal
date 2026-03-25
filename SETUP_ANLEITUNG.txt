@@ -1,0 +1,60 @@
+╔══════════════════════════════════════════════════════════════════╗
+║          KALENDER APP 2026 - SETUP ANLEITUNG                    ║
+╠══════════════════════════════════════════════════════════════════╣
+║                                                                  ║
+║  SCHRITT 1: Datei öffnen & speichern                            ║
+║  ─────────────────────────────────────────────────────────────   ║
+║  1. "Kalender_2026.xlsx" in Excel öffnen                        ║
+║  2. STRG+SHIFT+S → "Dateityp" wählen:                           ║
+║     "Excel-Arbeitsmappe mit Makros (*.xlsm)"                    ║
+║  3. Speichern als "Kalender_2026.xlsm"                          ║
+║                                                                  ║
+║  SCHRITT 2: VBA-Modul importieren                               ║
+║  ─────────────────────────────────────────────────────────────   ║
+║  1. ALT + F11  (VBA-Editor öffnen)                              ║
+║  2. Im linken Baum: Rechtsklick auf "VBAProject (Kalender..."   ║
+║  3. "Datei importieren..." klicken                               ║
+║  4. Datei "Kalender_Modul.bas" auswählen → OK                   ║
+║                                                                  ║
+║  SCHRITT 3: UserForm erstellen                                   ║
+║  ─────────────────────────────────────────────────────────────   ║
+║  1. Im VBA-Editor: Menü "Einfügen" → "UserForm"                 ║
+║  2. Formular im Eigenschaftsfenster umbenennen:                  ║
+║     Name = frmTermin                                             ║
+║     Caption = Termin eintragen                                   ║
+║  3. Aus der Toolbox folgende Controls ziehen:                    ║
+║                                                                  ║
+║     [Label]    Name: lblTitle   Caption: (Datum)                ║
+║     [Label]    Name: lblName    Caption: Name:                  ║
+║     [TextBox]  Name: txtName                                     ║
+║     [Label]    Name: lblKG      Caption: KG:                    ║
+║     [TextBox]  Name: txtKG                                       ║
+║     [Label]    Name: lblEZ      Caption: EZ:                    ║
+║     [TextBox]  Name: txtEZ                                       ║
+║     [Label]    Name: lblTel     Caption: Telefon:               ║
+║     [TextBox]  Name: txtTel                                      ║
+║     [Label]    Name: lblAnl     Caption: Anliegen:              ║
+║     [TextBox]  Name: txtAnliegen  (MultiLine: True)             ║
+║     [Button]   Name: cmdSpeichern  Caption: ✓ Speichern        ║
+║     [Button]   Name: cmdAbbrechen  Caption: Abbrechen           ║
+║     [Button]   Name: cmdLoeschen   Caption: Termin löschen     ║
+║                                                                  ║
+║  4. Doppelklick auf das Formular (leerer Bereich)               ║
+║     → Inhalt aus "UserForm_Code.txt" einfügen                   ║
+║                                                                  ║
+║  SCHRITT 4: Sheet-Code einfügen                                  ║
+║  ─────────────────────────────────────────────────────────────   ║
+║  1. Im VBA-Editor links: Doppelklick auf "Kalender"             ║
+║     (unter "Microsoft Excel Objekte")                           ║
+║  2. Inhalt aus "Sheet_Code.txt" einfügen                        ║
+║                                                                  ║
+║  SCHRITT 5: Fertig! ALT+F11 schließen                           ║
+║  ─────────────────────────────────────────────────────────────   ║
+║  Beim Öffnen der Datei: "Makros aktivieren" klicken             ║
+║                                                                  ║
+║  BENUTZUNG:                                                      ║
+║  → Klick auf eine Zelle im Kalender                             ║
+║  → Eingabemaske öffnet sich                                      ║
+║  → Felder ausfüllen → Speichern                                  ║
+║  → Terminübersicht + Tagesliste werden auto. aktualisiert       ║
+╚══════════════════════════════════════════════════════════════════╝
