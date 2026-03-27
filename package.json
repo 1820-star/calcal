@@ -1,0 +1,49 @@
+{
+  "name": "calcal-web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "electron-main.cjs",
+  "scripts": {
+    "start": "npx serve . -l 4173",
+    "dev": "npx serve . -l 4173",
+    "desktop": "electron .",
+    "build-win-portable": "electron-builder --win portable",
+    "build-win-installer": "electron-builder --win nsis",
+    "build-win-all": "electron-builder --win portable nsis"
+  },
+  "build": {
+    "appId": "com.calcal.desktop",
+    "productName": "CalCal",
+    "files": [
+      "index.html",
+      "styles.css",
+      "app.js",
+      "manifest.webmanifest",
+      "sw.js",
+      "favicon.ico",
+      "electron-main.cjs",
+      "preload.cjs"
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "artifactName": "CalCal-${version}-${target}.${ext}"
+    },
+    "portable": {
+      "artifactName": "CalCal-Portable-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "CalCal-Setup-${version}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^41.1.0",
+    "electron-builder": "^26.8.1"
+  }
+}

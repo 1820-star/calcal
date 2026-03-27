@@ -1,0 +1,32 @@
+name: Build Windows Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build portable + installer
+        run: npm run build-win-all
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: calcal-windows-build
+          path: |
+            dist/*.exe
+            dist/*.yml

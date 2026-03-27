@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#efe3d2" />
+    <title>CalCal Terminplaner</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div>
+          <p class="eyebrow">Monatsansicht</p>
+          <div class="month-switcher">
+            <button id="prev-month" class="icon-btn" type="button" aria-label="Vorheriger Monat">←</button>
+            <h1 id="month-title">Monat</h1>
+            <button id="next-month" class="icon-btn" type="button" aria-label="Nächster Monat">→</button>
+          </div>
+          <p class="muted">Kalender lokal gespeichert, ohne Cloud.</p>
+        </div>
+        <nav class="nav-tabs">
+          <button class="nav-tab active" data-view="calendar">Kalender</button>
+          <button class="nav-tab" data-view="archive">Archiv</button>
+        </nav>
+        <section class="app-tools card">
+          <h3>App & Daten</h3>
+          <button id="install-app" class="secondary-btn hidden" type="button">App installieren</button>
+          <button id="export-month-overview" class="secondary-btn" type="button">Monatsübersicht exportieren</button>
+          <button id="export-data" class="secondary-btn" type="button">Daten exportieren</button>
+          <button id="import-data" class="secondary-btn" type="button">Daten importieren</button>
+          <input id="import-data-file" type="file" accept="application/json" class="hidden" />
+          <p class="muted small-note">Export/Import als JSON für Sicherung und späteres Einspielen.</p>
+        </section>
+      </aside>
+
+      <main class="main-panel">
+        <header class="topbar">
+          <div>
+            <p id="today-label" class="eyebrow today-hero">Heute</p>
+            <h2 id="view-title">Kalender</h2>
+          </div>
+          <div class="topbar-actions">
+            <span class="day-picker-label">Ausgewählter Tag</span>
+            <input id="selected-date" type="date" />
+            <span id="selected-date-label" class="pill">Kein Tag gewählt</span>
+            <span id="selected-day-count" class="pill">0 Termine</span>
+            <button id="new-appointment" class="primary-btn" type="button">Neuer Termin</button>
+            <button id="print-daylist" class="secondary-btn" type="button">Tagesliste drucken</button>
+          </div>
+        </header>
+
+        <section id="calendar-view" class="view active">
+          <div class="calendar-toolbar card">
+            <div>
+              <h3>Nächste 3 Termine</h3>
+              <p class="muted" id="move-hint">Mo-Fr, 08:00 bis 12:00. Klick auf Termin: bearbeiten oder verschieben.</p>
+            </div>
+            <div id="next-three" class="toolbar-summary next-three"></div>
+          </div>
+          <div class="calendar-grid-wrap">
+            <div class="calendar-grid-note muted">Raster Monatsansicht</div>
+            <div id="calendar-grid" class="calendar-grid"></div>
+          </div>
+        </section>
+
+        <section id="archive-view" class="view">
+          <div class="card list-card">
+            <div class="section-header">
+              <div>
+                <h3>Archiv</h3>
+                <p class="muted">Alle Eintragungen mit Status und Kontaktinformationen.</p>
+              </div>
+              <button id="export-archive-csv" class="secondary-btn" type="button">CSV Export Kontakte</button>
+            </div>
+            <div class="archive-tools">
+              <input id="archive-search" type="search" placeholder="Suche: Name, Telefon, Datum, Anliegen ..." />
+              <span id="archive-search-info" class="pill">0 Treffer</span>
+            </div>
+            <div id="archive-container"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="appointment-dialog" class="appointment-dialog">
+      <form id="appointment-form" method="dialog">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">Termin erfassen</p>
+            <h3 id="dialog-slot-title">Slot</h3>
+          </div>
+          <button type="button" id="close-dialog" class="icon-btn">×</button>
+        </div>
+        <div class="form-grid">
+          <label> Datum <input name="date" type="date" required /> </label>
+          <label> Uhrzeit
+            <select name="time" required></select>
+          </label>
+          <label> Name <input name="name" required /> </label>
+          <label> KG <input name="kg" /> </label>
+          <label> EZ <input name="ez" /> </label>
+          <label> Telefonnummer <input name="phone" required /> </label>
+          <label class="full-width"> Anliegen <textarea name="concern" rows="3"></textarea> </label>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" id="delete-appointment" class="danger-btn hidden">Termin löschen</button>
+          <button type="button" id="move-appointment" class="secondary-btn hidden">Termin verschieben</button>
+          <div class="dialog-actions-right">
+            <button type="button" id="cancel-dialog" class="secondary-btn">Abbrechen</button>
+            <button type="submit" class="primary-btn">Speichern</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <template id="table-template">
+      <table class="data-table">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </template>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

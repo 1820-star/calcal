@@ -1,0 +1,17 @@
+{
+  "name": "CalCal Terminplaner",
+  "short_name": "CalCal",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#efe3d2",
+  "theme_color": "#efe3d2",
+  "lang": "de",
+  "description": "Lokaler Terminplaner mit Monatsraster und Archiv.",
+  "icons": [
+    {
+      "src": "./favicon.ico",
+      "sizes": "48x48 64x64 128x128 256x256",
+      "type": "image/x-icon"
+    }
+  ]
+}
