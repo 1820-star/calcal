@@ -8,9 +8,9 @@
     "start": "npx serve . -l 4173",
     "dev": "npx serve . -l 4173",
     "desktop": "electron .",
-    "build-win-portable": "electron-builder --win portable",
-    "build-win-installer": "electron-builder --win nsis",
-    "build-win-all": "electron-builder --win portable nsis"
+    "build-win-portable": "electron-builder --win portable --publish never",
+    "build-win-installer": "electron-builder --win nsis --publish never",
+    "build-win-all": "electron-builder --win portable nsis --publish never"
   },
   "build": {
     "appId": "com.calcal.desktop",
