@@ -1,14 +1,18 @@
 const STORAGE_KEY = 'calcal-appointments-v1';
+const NGB_STORAGE_KEY = 'calcal-ngb-v1';
 const SLOT_TIMES = buildSlotTimes();
 
 const today = new Date();
 const state = {
   appointments: loadAppointments(),
+  ngbs: loadNgbs(),
   currentMonthStart: startOfMonth(today),
   selectedDate: '',
   editingKey: null,
+  editingNgbId: null,
   moveAppointmentId: null,
   archiveQuery: '',
+  ngbQuery: '',
   deferredInstallPrompt: null,
 };
 
@@ -28,6 +32,8 @@ const elements = {
   navTabs: [...document.querySelectorAll('.nav-tab')],
   views: {
     calendar: document.getElementById('calendar-view'),
+    travel: document.getElementById('travel-view'),
+    ngb: document.getElementById('ngb-view'),
     archive: document.getElementById('archive-view'),
   },
   monthTitle: document.getElementById('month-title'),
@@ -47,8 +53,19 @@ const elements = {
   archiveSearch: document.getElementById('archive-search'),
   archiveSearchInfo: document.getElementById('archive-search-info'),
   exportArchiveCsv: document.getElementById('export-archive-csv'),
+  ngbContainer: document.getElementById('ngb-container'),
+  ngbSearch: document.getElementById('ngb-search'),
+  ngbSearchInfo: document.getElementById('ngb-search-info'),
+  newNgb: document.getElementById('new-ngb'),
+  travelPrice: document.getElementById('travel-price'),
+  travelStart: document.getElementById('travel-start'),
+  travelEnd: document.getElementById('travel-end'),
+  travelDuration: document.getElementById('travel-duration'),
+  travelCalc: document.getElementById('travel-calc'),
+  travelResults: document.getElementById('travel-results'),
   installApp: document.getElementById('install-app'),
   exportMonthOverview: document.getElementById('export-month-overview'),
+  exportBothWeeks: document.getElementById('export-both-weeks'),
   exportData: document.getElementById('export-data'),
   importData: document.getElementById('import-data'),
   importDataFile: document.getElementById('import-data-file'),
@@ -59,6 +76,12 @@ const elements = {
   cancelDialog: document.getElementById('cancel-dialog'),
   deleteAppointment: document.getElementById('delete-appointment'),
   moveAppointment: document.getElementById('move-appointment'),
+  ngbDialog: document.getElementById('ngb-dialog'),
+  ngbForm: document.getElementById('ngb-form'),
+  ngbDialogTitle: document.getElementById('dialog-ngb-title'),
+  closeNgbDialog: document.getElementById('close-ngb-dialog'),
+  cancelNgbDialog: document.getElementById('cancel-ngb-dialog'),
+  deleteNgb: document.getElementById('delete-ngb'),
 };
 
 bootstrap();
@@ -79,12 +102,16 @@ function bindEvents() {
   elements.prevMonth.addEventListener('click', () => {
     state.currentMonthStart = addMonths(state.currentMonthStart, -1);
     ensureValidSelectedDate();
+    elements.calendarGrid.classList.add('animate-month-change');
+    setTimeout(() => elements.calendarGrid.classList.remove('animate-month-change'), 200);
     renderAll();
   });
 
   elements.nextMonth.addEventListener('click', () => {
     state.currentMonthStart = addMonths(state.currentMonthStart, 1);
     ensureValidSelectedDate();
+    elements.calendarGrid.classList.add('animate-month-change');
+    setTimeout(() => elements.calendarGrid.classList.remove('animate-month-change'), 200);
     renderAll();
   });
 
@@ -95,6 +122,7 @@ function bindEvents() {
   elements.exportArchiveCsv.addEventListener('click', exportArchiveCsv);
   elements.installApp.addEventListener('click', installApp);
   elements.exportMonthOverview.addEventListener('click', exportMonthlyOverview);
+  elements.exportBothWeeks.addEventListener('click', exportBothWeeksOverview);
   elements.exportData.addEventListener('click', exportDataJson);
   elements.importData.addEventListener('click', () => elements.importDataFile.click());
   elements.importDataFile.addEventListener('change', importDataJson);
@@ -104,6 +132,24 @@ function bindEvents() {
   elements.cancelDialog.addEventListener('click', closeDialog);
   elements.deleteAppointment.addEventListener('click', handleDelete);
   elements.moveAppointment.addEventListener('click', handleMoveStart);
+  
+  if (elements.newNgb && elements.ngbSearch && elements.ngbForm && elements.closeNgbDialog && elements.cancelNgbDialog && elements.deleteNgb) {
+    elements.newNgb.addEventListener('click', openNgbDialog);
+    elements.ngbSearch.addEventListener('input', handleNgbSearchInput);
+    elements.ngbForm.addEventListener('submit', handleNgbSubmit);
+    elements.closeNgbDialog.addEventListener('click', closeNgbDialog);
+    elements.cancelNgbDialog.addEventListener('click', closeNgbDialog);
+    elements.deleteNgb.addEventListener('click', handleNgbDelete);
+  }
+
+  if (elements.travelCalc && elements.travelPrice && elements.travelStart && elements.travelEnd && elements.travelDuration) {
+    elements.travelCalc.addEventListener('click', calculateTravelCosts);
+    elements.travelPrice.addEventListener('change', calculateTravelCosts);
+    elements.travelStart.addEventListener('change', calculateTravelCosts);
+    elements.travelEnd.addEventListener('change', calculateTravelCosts);
+    elements.travelDuration.addEventListener('change', calculateTravelCosts);
+  }
+
   window.addEventListener('resize', fitCalendarToViewport);
 
   window.addEventListener('beforeinstallprompt', (event) => {
@@ -120,6 +166,9 @@ function bindEvents() {
 
 function setView(view) {
   Object.entries(elements.views).forEach(([key, node]) => {
+    if (!node) {
+      return;
+    }
     node.classList.toggle('active', key === view);
   });
 
@@ -129,9 +178,13 @@ function setView(view) {
 
   const titles = {
     calendar: 'Kalender',
+    travel: 'Fahrtkosten',
+    ngb: 'NGB',
     archive: 'Archiv',
   };
-  elements.viewTitle.textContent = titles[view];
+  if (titles[view]) {
+    elements.viewTitle.textContent = titles[view];
+  }
 }
 
 function renderAll() {
@@ -141,6 +194,7 @@ function renderAll() {
   renderCalendar();
   renderNextThree();
   renderArchive();
+  renderNgb();
   updateSelectionSummary();
   updateMoveHint();
   elements.selectedDateInput.value = state.selectedDate;
@@ -388,7 +442,7 @@ function exportArchiveCsv() {
   const link = document.createElement('a');
   const stamp = formatDateISO(new Date());
   link.href = url;
-  link.download = `calcal-kontakte-${stamp}.csv`;
+  link.download = `scal-kontakte-${stamp}.csv`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -553,12 +607,13 @@ function handleDelete() {
 
 function archivePastAppointments() {
   const now = new Date();
+  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
   let changed = false;
 
   state.appointments = state.appointments.map((appointment) => {
     if (appointment.status === 'open') {
       const appointmentDate = new Date(`${appointment.date}T${appointment.time}:00`);
-      if (appointmentDate < now) {
+      if (appointmentDate < twoHoursAgo) {
         changed = true;
         return {
           ...appointment,
@@ -630,9 +685,26 @@ function registerServiceWorker() {
   }
 
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {
-      // Leise fehlschlagen, App soll ohne SW weiterhin funktionieren.
-    });
+    void (async () => {
+      try {
+        const host = window.location.hostname;
+        const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+
+        if (isLocalHost) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((registration) => registration.unregister()));
+
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((key) => caches.delete(key)));
+          }
+        }
+
+        await navigator.serviceWorker.register('./sw.js?v=scal-milestone-20260328');
+      } catch {
+        // Leise fehlschlagen, App soll ohne SW weiterhin funktionieren.
+      }
+    })();
   });
 }
 
@@ -743,7 +815,231 @@ function buildMonthlyOverviewHtml() {
     </style>
   </head>
   <body>
-    <h1>CalCal Monatsuebersicht ${escapeHtml(monthLabel)}</h1>
+    <h1>scal Monatsuebersicht ${escapeHtml(monthLabel)}</h1>
+    <table>
+      <thead>
+        <tr><th>Zeit</th>${headerCells}</tr>
+      </thead>
+      <tbody>
+        ${bodyRows}
+      </tbody>
+    </table>
+  </body>
+</html>`;
+}
+
+async function exportBothWeeksOverview() {
+  const today = new Date();
+  
+  // Calculate last week start
+  const dayOfWeek = today.getDay();
+  const daysToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+  const currentWeekStart = new Date(today);
+  currentWeekStart.setDate(currentWeekStart.getDate() + daysToMonday);
+  
+  const lastWeekStart = new Date(currentWeekStart);
+  lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+  
+  const html = buildBothWeeksHtml(formatDateISO(lastWeekStart), formatDateISO(currentWeekStart));
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const stamp = formatDateISO(new Date());
+  link.href = url;
+  link.download = `scal-wochen-${stamp}.html`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function buildBothWeeksHtml(lastWeekStartIso, currentWeekStartIso) {
+  const lastWeekStart = new Date(`${lastWeekStartIso}T00:00:00`);
+  const currentWeekStart = new Date(`${currentWeekStartIso}T00:00:00`);
+  
+  const getWeekDays = (weekStart) => {
+    const days = [];
+    for (let i = 0; i < 5; i++) {
+      const date = new Date(weekStart);
+      date.setDate(date.getDate() + i);
+      const iso = formatDateISO(date);
+      if (isWeekDay(date)) {
+        days.push(iso);
+      }
+    }
+    return days;
+  };
+
+  const lastWeekDays = getWeekDays(lastWeekStart);
+  const currentWeekDays = getWeekDays(currentWeekStart);
+  const visibleSlotTimes = getVisibleSlotTimes([...lastWeekDays, ...currentWeekDays]);
+
+  const lastWeekLabel = `${formatDateGerman(lastWeekDays[0])} - ${formatDateGerman(lastWeekDays[lastWeekDays.length - 1])}`;
+  const currentWeekLabel = `${formatDateGerman(currentWeekDays[0])} - ${formatDateGerman(currentWeekDays[currentWeekDays.length - 1])}`;
+
+  const buildWeekTable = (weekDays, weekTitle) => {
+    const headerCells = weekDays
+      .map((date) => `<th>${escapeHtml(formatWeekdayCompact(date))} ${escapeHtml(formatDayNumber(date))}</th>`)
+      .join('');
+
+    const bodyRows = visibleSlotTimes
+      .map((time) => {
+        const dayCells = weekDays
+          .map((date) => {
+            const appointment = getAppointment(date, time);
+            if (!appointment) {
+              return '<td></td>';
+            }
+
+            const lines = [
+              `${appointment.time}`,
+              appointment.name,
+              appointment.phone || '',
+              appointment.concern || '',
+            ].filter(Boolean);
+
+            return `<td>${lines.map((line) => `<div>${escapeHtml(line)}</div>`).join('')}</td>`;
+          })
+          .join('');
+
+        return `<tr><th>${escapeHtml(time)}</th>${dayCells}</tr>`;
+      })
+      .join('');
+
+    return `
+        <div style="margin-bottom: 24px;">
+          <p style="margin: 12px 0; font-size: 11px; color: #666;">${escapeHtml(weekTitle)}</p>
+          <table style="width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 10px;">
+        <thead>
+          <tr><th>Zeit</th>${headerCells}</tr>
+        </thead>
+        <tbody>
+          ${bodyRows}
+        </tbody>
+      </table>
+        </div>
+    `;
+  };
+
+  return `<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+      <title>Terminuebersicht</title>
+    <style>
+      @page { size: A4 landscape; margin: 8mm; }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: Arial, sans-serif; color: #232323; }
+        h1 { margin: 0 0 12mm; font-size: 18px; }
+      table { border-collapse: collapse; table-layout: fixed; font-size: 10px; }
+      th, td { border: 1px solid #cfcfcf; padding: 2px; vertical-align: top; }
+      thead th { background: #f2f2f2; }
+      tbody th { background: #f7f7f7; width: 44px; }
+      td div { white-space: normal; line-height: 1.2; }
+    </style>
+  </head>
+  <body>
+      <h1>scal Terminübersicht</h1>
+      ${buildWeekTable(lastWeekDays, lastWeekLabel)}
+      ${buildWeekTable(currentWeekDays, currentWeekLabel)}
+  </body>
+</html>`;
+}
+
+async function exportWeeklyOverview(weekType) {
+  const today = new Date();
+  let weekStart;
+
+  if (weekType === 'current') {
+    const dayOfWeek = today.getDay();
+    const daysToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+    weekStart = new Date(today);
+    weekStart.setDate(weekStart.getDate() + daysToMonday);
+  } else {
+    const dayOfWeek = today.getDay();
+    const daysToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+    weekStart = new Date(today);
+    weekStart.setDate(weekStart.getDate() + daysToMonday - 7);
+  }
+
+  const html = buildWeeklyOverviewHtml(formatDateISO(weekStart));
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const weekLabel = weekType === 'current' ? 'Aktuelle' : 'Letzte';
+  const stamp = formatDateISO(weekStart);
+  link.href = url;
+  link.download = `scal-woche-${weekLabel.toLowerCase()}-${stamp}.html`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function buildWeeklyOverviewHtml(weekStartIso) {
+  const weekStart = new Date(`${weekStartIso}T00:00:00`);
+  const weekDays = [];
+  for (let i = 0; i < 5; i++) {
+    const date = new Date(weekStart);
+    date.setDate(date.getDate() + i);
+    const iso = formatDateISO(date);
+    if (isWeekDay(date)) {
+      weekDays.push(iso);
+    }
+  }
+
+  const visibleSlotTimes = getVisibleSlotTimes(weekDays);
+  const weekLabel = `${formatDateGerman(weekDays[0])} - ${formatDateGerman(weekDays[weekDays.length - 1])}`;
+
+  const headerCells = weekDays
+    .map((date) => `<th>${escapeHtml(formatWeekdayCompact(date))} ${escapeHtml(formatDayNumber(date))}</th>`)
+    .join('');
+
+  const bodyRows = visibleSlotTimes
+    .map((time) => {
+      const dayCells = weekDays
+        .map((date) => {
+          const appointment = getAppointment(date, time);
+          if (!appointment) {
+            return '<td></td>';
+          }
+
+          const lines = [
+            `${appointment.time}`,
+            appointment.name,
+            appointment.phone || '',
+            appointment.concern || '',
+          ].filter(Boolean);
+
+          return `<td>${lines.map((line) => `<div>${escapeHtml(line)}</div>`).join('')}</td>`;
+        })
+        .join('');
+
+      return `<tr><th>${escapeHtml(time)}</th>${dayCells}</tr>`;
+    })
+    .join('');
+
+  return `<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Wochenuebersicht ${escapeHtml(weekLabel)}</title>
+    <style>
+      @page { size: A4 landscape; margin: 8mm; }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: Arial, sans-serif; color: #232323; }
+      h1 { margin: 0 0 6mm; font-size: 18px; }
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 10px; }
+      th, td { border: 1px solid #cfcfcf; padding: 2px; vertical-align: top; }
+      thead th { background: #f2f2f2; }
+      tbody th { background: #f7f7f7; width: 44px; }
+      td div { white-space: normal; line-height: 1.2; }
+    </style>
+  </head>
+  <body>
+    <h1>scal Wochenuebersicht ${escapeHtml(weekLabel)}</h1>
     <table>
       <thead>
         <tr><th>Zeit</th>${headerCells}</tr>
@@ -1033,7 +1329,7 @@ function ensureValidSelectedDate() {
     return;
   }
 
-  state.selectedDate = monthDays[0];
+      state.selectedDate = monthDays[0];
 }
 
 function getInitialSelectedDate() {
@@ -1068,7 +1364,7 @@ function buildSlotTimes() {
   let hour = 8;
   let minute = 0;
 
-  while (hour < 12 || (hour === 12 && minute === 0)) {
+  while (hour < 11 || (hour === 11 && minute <= 30)) {
     times.push(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
     minute += 10;
     if (minute === 60) {
@@ -1151,4 +1447,273 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+// ====== NGB-Funktionen ======
+function loadNgbs() {
+  try {
+    const stored = localStorage.getItem(NGB_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistNgbs() {
+  localStorage.setItem(NGB_STORAGE_KEY, JSON.stringify(state.ngbs));
+}
+
+function renderNgb() {
+  if (!elements.ngbContainer || !elements.ngbSearchInfo) {
+    return;
+  }
+
+  const query = state.ngbQuery.trim().toLowerCase();
+  const filteredItems = query
+    ? state.ngbs.filter((ngb) => {
+        const haystack = [
+          ngb.ngbNumber,
+          ngb.recipientName,
+          ngb.iban,
+          ngb.amount || '',
+          ngb.status,
+          normalizeTzList(ngb.tzs || ngb.tz).join(' '),
+        ]
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(query);
+      })
+    : state.ngbs;
+
+  const headers = ['NGB-Nummer', 'Name des Empfängers', 'IBAN', 'TZ', 'Betrag', 'Status'];
+  const rows = filteredItems.map((ngb) => [
+    ngb.ngbNumber,
+    ngb.recipientName,
+    ngb.iban,
+    formatTzList(normalizeTzList(ngb.tzs || ngb.tz)),
+    ngb.amount ? `${ngb.amount}€` : '-',
+    ngb.status === 'done' ? '✓ Erledigt' : 'Offen',
+  ]);
+
+  elements.ngbSearchInfo.textContent = `${filteredItems.length} Einträge`;
+  elements.ngbContainer.replaceChildren(buildTable(headers, rows, 'Keine Einträge vorhanden.'));
+}
+
+function openNgbDialog(existingNgbId = null) {
+  if (!elements.ngbDialog || !elements.ngbForm) {
+    return;
+  }
+
+  const existingNgb = state.ngbs.find((ngb) => ngb.id === existingNgbId);
+  state.editingNgbId = existingNgbId || null;
+  elements.ngbDialogTitle.textContent = existingNgb ? 'NGB-Eintrag bearbeiten' : 'Neuer NGB-Eintrag';
+  elements.deleteNgb.classList.toggle('hidden', !existingNgb);
+
+  elements.ngbForm['ngb-number'].value = existingNgb?.ngbNumber || '';
+  elements.ngbForm['recipient-name'].value = existingNgb?.recipientName || '';
+  elements.ngbForm.iban.value = existingNgb?.iban || '';
+  elements.ngbForm.tz.value = formatTzList(normalizeTzList(existingNgb?.tzs || existingNgb?.tz), '');
+  elements.ngbForm.amount.value = existingNgb?.amount || '';
+
+  elements.ngbDialog.showModal();
+}
+
+function closeNgbDialog() {
+  if (!elements.ngbDialog || !elements.ngbForm) {
+    return;
+  }
+
+  elements.ngbDialog.close();
+  state.editingNgbId = null;
+  elements.ngbForm.reset();
+}
+
+function normalizeTzList(rawTz) {
+  if (Array.isArray(rawTz)) {
+    return rawTz.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (!rawTz) {
+    return [];
+  }
+
+  return String(rawTz)
+    .split(/[\n,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function formatTzList(tzList, fallback = '-') {
+  return tzList.length ? tzList.join(', ') : fallback;
+}
+
+function handleNgbSubmit(event) {
+  event.preventDefault();
+
+  const ngbNumber = elements.ngbForm['ngb-number'].value.trim();
+  const recipientName = elements.ngbForm['recipient-name'].value.trim();
+  const iban = elements.ngbForm.iban.value.trim();
+  const tzs = normalizeTzList(elements.ngbForm.tz.value);
+  const amount = elements.ngbForm.amount.value ? parseFloat(elements.ngbForm.amount.value) : null;
+
+  if (!ngbNumber || !recipientName || !iban) {
+    alert('NGB-Nummer, Name und IBAN sind erforderlich.');
+    return;
+  }
+
+  if (state.editingNgbId) {
+    const existingNgb = state.ngbs.find((ngb) => ngb.id === state.editingNgbId);
+    if (existingNgb) {
+      existingNgb.ngbNumber = ngbNumber;
+      existingNgb.recipientName = recipientName;
+      existingNgb.iban = iban;
+      existingNgb.tzs = tzs;
+      existingNgb.amount = amount;
+    }
+  } else {
+    state.ngbs.push({
+      id: crypto.randomUUID(),
+      ngbNumber,
+      recipientName,
+      iban,
+      tzs,
+      amount,
+      status: 'open',
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  persistNgbs();
+  renderNgb();
+  closeNgbDialog();
+}
+
+function handleNgbDelete() {
+  if (!state.editingNgbId) return;
+  const index = state.ngbs.findIndex((ngb) => ngb.id === state.editingNgbId);
+  if (index >= 0) {
+    state.ngbs.splice(index, 1);
+    persistNgbs();
+    renderNgb();
+    closeNgbDialog();
+  }
+}
+
+function handleNgbSearchInput(event) {
+  state.ngbQuery = event.target.value || '';
+  renderNgb();
+}
+
+// ====== Travel Cost Calculator Functions ======
+function timeToMinutes(timeString) {
+  if (!timeString) return null;
+  const [h, m] = timeString.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return null;
+  return h * 60 + m;
+}
+
+function minutesToTime(minutes) {
+  if (minutes === null) return '--:--';
+  const adjustedMinutes = ((minutes % 1440) + 1440) % 1440;
+  const h = Math.floor(adjustedMinutes / 60);
+  const m = adjustedMinutes % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('de-DE', {
+    style: 'currency',
+    currency: 'EUR',
+  }).format(amount);
+}
+
+function calculateTravelCosts() {
+  if (!elements.travelPrice || !elements.travelStart || !elements.travelEnd || !elements.travelDuration || !elements.travelResults) {
+    return;
+  }
+
+  const priceInput = (elements.travelPrice.value || '').replace(',', '.').trim();
+  const price = Number(priceInput);
+  const startMin = timeToMinutes(elements.travelStart.value);
+  const endMin = timeToMinutes(elements.travelEnd.value);
+  const durationMin = timeToMinutes(elements.travelDuration.value);
+
+  if (!Number.isFinite(price) || price < 0 || startMin === null || endMin === null || durationMin === null) {
+    elements.travelResults.classList.add('hidden');
+    return;
+  }
+
+  const setText = (id, value) => {
+    const node = document.getElementById(id);
+    if (node) {
+      node.textContent = value;
+    }
+  };
+
+  const setActive = (id, active) => {
+    const node = document.getElementById(id);
+    if (node) {
+      node.classList.toggle('active', active);
+    }
+  };
+
+  // Calculate timeline
+  const departHome = startMin - 30 - durationMin;
+  const arrivalAppointment = startMin - 30;
+  const departAppointment = endMin + 30;
+  const arrivalHome = endMin + 30 + durationMin;
+
+  // Display timeline
+  setText('travel-t0', minutesToTime(departHome));
+  setText('travel-t1', minutesToTime(arrivalAppointment));
+  setText('travel-t2', minutesToTime(startMin));
+  setText('travel-t3', minutesToTime(endMin));
+  setText('travel-t4', minutesToTime(departAppointment));
+  setText('travel-t5', minutesToTime(arrivalHome));
+
+  // Calculate costs with explanations
+  const trainCost = price * 2;
+  
+  const earlyCost = departHome < 7 * 60 ? 5.80 : 0;
+  const lunchCost = departHome < 11 * 60 && arrivalHome > 14 * 60 ? 12.30 : 0;
+  const eveningCost = arrivalHome > 19 * 60 ? 12.30 : 0;
+  const totalCost = trainCost + earlyCost + lunchCost + eveningCost;
+
+  // Build explanations
+  const trainExpl = `${formatCurrency(price)} × 2 (Hin- & Rückfahrt)`;
+  
+  const earlyExpl = departHome < 7 * 60 
+    ? `Abfahrt ${minutesToTime(departHome)} vor 7:00 Uhr`
+    : `Abfahrt ${minutesToTime(departHome)} nach 7:00 Uhr – nicht berechtigt`;
+  
+  const lunchExpl = departHome < 11 * 60 && arrivalHome > 14 * 60
+    ? `Abfahrt vor 11:00 Uhr (${minutesToTime(departHome)}) & Ankunft nach 14:00 Uhr (${minutesToTime(arrivalHome)})`
+    : `Abfahrt ${minutesToTime(departHome)} oder Ankunft ${minutesToTime(arrivalHome)} – Bedingung nicht erfüllt`;
+  
+  const eveningExpl = arrivalHome > 19 * 60
+    ? `Ankunft ${minutesToTime(arrivalHome)} nach 19:00 Uhr`
+    : `Ankunft ${minutesToTime(arrivalHome)} vor 19:00 Uhr – nicht berechtigt`;
+
+  // Display costs with explanations
+  setText('travel-cost-train', formatCurrency(trainCost));
+  setText('travel-exp-train', trainExpl);
+  
+  setText('travel-cost-early', earlyCost > 0 ? formatCurrency(earlyCost) : '–');
+  setText('travel-exp-early', earlyExpl);
+  
+  setText('travel-cost-lunch', lunchCost > 0 ? formatCurrency(lunchCost) : '–');
+  setText('travel-exp-lunch', lunchExpl);
+  
+  setText('travel-cost-evening', eveningCost > 0 ? formatCurrency(eveningCost) : '–');
+  setText('travel-exp-evening', eveningExpl);
+  
+  setText('travel-cost-total', formatCurrency(totalCost));
+
+  // Toggle visibility of meal allowances
+  setActive('travel-row-early', earlyCost > 0);
+  setActive('travel-row-lunch', lunchCost > 0);
+  setActive('travel-row-evening', eveningCost > 0);
+
+  // Show results
+  elements.travelResults.classList.remove('hidden');
 }

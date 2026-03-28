@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#efe3d2" />
-    <title>CalCal Terminplaner</title>
+    <title>scal Terminplaner</title>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
@@ -22,12 +22,14 @@
         </div>
         <nav class="nav-tabs">
           <button class="nav-tab active" data-view="calendar">Kalender</button>
+          <button class="nav-tab" data-view="travel">Fahrtkosten</button>
+          <button class="nav-tab" data-view="ngb">NGB</button>
           <button class="nav-tab" data-view="archive">Archiv</button>
         </nav>
         <section class="app-tools card">
           <h3>App & Daten</h3>
           <button id="install-app" class="secondary-btn hidden" type="button">App installieren</button>
-          <button id="export-month-overview" class="secondary-btn" type="button">Monatsübersicht exportieren</button>
+          <button id="export-month-overview" class="secondary-btn" type="button">Übersicht exportieren</button>          <button id="export-both-weeks" class="secondary-btn" type="button">Letzte + Aktuelle Woche</button>
           <button id="export-data" class="secondary-btn" type="button">Daten exportieren</button>
           <button id="import-data" class="secondary-btn" type="button">Daten importieren</button>
           <input id="import-data-file" type="file" accept="application/json" class="hidden" />
@@ -81,8 +83,113 @@
             <div id="archive-container"></div>
           </div>
         </section>
-      </main>
-    </div>
+
+        <section id="ngb-view" class="view">
+          <div class="card list-card">
+            <div class="section-header">
+              <div>
+                <h3>NGB</h3>
+                <p class="muted">NGB-Nummern, TZ und Überweisungsdaten.</p>
+              </div>
+              <button id="new-ngb" class="primary-btn" type="button">Neuer NGB-Eintrag</button>
+            </div>
+            <div class="ngb-tools">
+              <input id="ngb-search" type="search" placeholder="Suche: NGB, Name, IBAN ..." />
+              <span id="ngb-search-info" class="pill">0 Einträge</span>
+            </div>
+            <div id="ngb-container"></div>
+          </div>
+        </section>
+
+        <section id="travel-view" class="view">
+          <div class="card list-card">
+            <div class="section-header">
+              <div>
+                <h3>Reisekostenrechner</h3>
+                <p class="muted">Berechne Fahrtkosten für Dienstreisen (Bahn + Mahlzeiten).</p>
+              </div>
+            </div>
+            <div class="travel-form">
+              <div class="form-grid">
+                <label> Zugticket-Preis (€) <input id="travel-price" type="number" step="0.01" min="0" placeholder="z.B. 45.50" /> </label>
+                <label> Anfangszeit Termin <input id="travel-start" type="time" /> </label>
+                <label> Endzeit Termin <input id="travel-end" type="time" /> </label>
+                <label> Fahrzeit zur Dienststelle <input id="travel-duration" type="time" /> </label>
+              </div>
+              <button id="travel-calc" class="primary-btn" type="button">Berechnen</button>
+            </div>
+
+            <div id="travel-results" class="travel-results hidden">
+              <div class="travel-timeline">
+                <h4>Zeitplan</h4>
+                <div class="timeline-items">
+                  <div class="timeline-item">
+                    <span class="timeline-label">Abfahrt zuhause:</span>
+                    <span id="travel-t0" class="timeline-value">--:--</span>
+                  </div>
+                  <div class="timeline-item">
+                    <span class="timeline-label">Ankunft Termin:</span>
+                    <span id="travel-t1" class="timeline-value">--:--</span>
+                  </div>
+                  <div class="timeline-item">
+                    <span class="timeline-label">Termin Anfang:</span>
+                    <span id="travel-t2" class="timeline-value">--:--</span>
+                  </div>
+                  <div class="timeline-item">
+                    <span class="timeline-label">Termin Ende:</span>
+                    <span id="travel-t3" class="timeline-value">--:--</span>
+                  </div>
+                  <div class="timeline-item">
+                    <span class="timeline-label">Abfahrt vom Termin:</span>
+                    <span id="travel-t4" class="timeline-value">--:--</span>
+                  </div>
+                  <div class="timeline-item">
+                    <span class="timeline-label">Ankunft zuhause:</span>
+                    <span id="travel-t5" class="timeline-value">--:--</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="travel-costs">
+                <h4>Kostenaufstellung</h4>
+                <div class="costs-table">
+                  <div class="cost-row">
+                    <div>
+                      <span>Zugticket (2×):</span>
+                      <span class="cost-explanation" id="travel-exp-train"></span>
+                    </div>
+                    <span id="travel-cost-train" class="cost-value">0,00 €</span>
+                  </div>
+                  <div class="cost-row active" id="travel-row-early">
+                    <div>
+                      <span>Frühstückszuschuss:</span>
+                      <span class="cost-explanation" id="travel-exp-early"></span>
+                    </div>
+                    <span id="travel-cost-early" class="cost-value">–</span>
+                  </div>
+                  <div class="cost-row active" id="travel-row-lunch">
+                    <div>
+                      <span>Mittagsverpflegung:</span>
+                      <span class="cost-explanation" id="travel-exp-lunch"></span>
+                    </div>
+                    <span id="travel-cost-lunch" class="cost-value">–</span>
+                  </div>
+                  <div class="cost-row active" id="travel-row-evening">
+                    <div>
+                      <span>Abendverpflegung:</span>
+                      <span class="cost-explanation" id="travel-exp-evening"></span>
+                    </div>
+                    <span id="travel-cost-evening" class="cost-value">–</span>
+                  </div>
+                  <div class="cost-row total">
+                    <span>Gesamtbetrag:</span>
+                    <span id="travel-cost-total" class="cost-value">0,00 €</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
     <dialog id="appointment-dialog" class="appointment-dialog">
       <form id="appointment-form" method="dialog">
@@ -108,8 +215,37 @@
           <button type="button" id="delete-appointment" class="danger-btn hidden">Termin löschen</button>
           <button type="button" id="move-appointment" class="secondary-btn hidden">Termin verschieben</button>
           <div class="dialog-actions-right">
-            <button type="button" id="cancel-dialog" class="secondary-btn">Abbrechen</button>
             <button type="submit" class="primary-btn">Speichern</button>
+            <button type="button" id="cancel-dialog" class="secondary-btn">Abbrechen</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="ngb-dialog" class="appointment-dialog">
+      <form id="ngb-form" method="dialog">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">NGB erfassen</p>
+            <h3 id="dialog-ngb-title">Neuer NGB-Eintrag</h3>
+          </div>
+          <button type="button" id="close-ngb-dialog" class="icon-btn">×</button>
+        </div>
+        <div class="form-grid">
+          <label> NGB-Nummer <input name="ngb-number" required /> </label>
+          <label> Name des Empfängers <input name="recipient-name" required /> </label>
+          <label> IBAN <input name="iban" required /> </label>
+          <label class="full-width"> TZ (mehrere möglich)
+            <input name="tz" placeholder="z.B. TZ1, TZ2, TZ3" />
+            <small class="muted">Mehrere TZ mit Komma trennen.</small>
+          </label>
+          <label> Betrag (optional) <input name="amount" type="number" step="0.01" /> </label>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" id="delete-ngb" class="danger-btn hidden">Eintrag löschen</button>
+          <div class="dialog-actions-right">
+            <button type="submit" class="primary-btn">Speichern</button>
+            <button type="button" id="cancel-ngb-dialog" class="secondary-btn">Abbrechen</button>
           </div>
         </div>
       </form>

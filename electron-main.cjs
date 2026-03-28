@@ -38,10 +38,10 @@ app.whenReady().then(() => {
 
 ipcMain.handle('calcal:save-monthly-overview', async (_event, htmlContent) => {
   const targetDir = process.platform === 'win32'
-    ? path.join('C:', 'CALCAL Portable')
-    : path.join(os.homedir(), 'CALCAL Portable');
+    ? path.join('C:', 'scal Portable')
+    : path.join(os.homedir(), 'scal Portable');
 
-  const targetPath = path.join(targetDir, 'Monatsuebersicht-Aktuell.html');
+  const targetPath = path.join(targetDir, 'Uebersicht-Aktuell.html');
   await fs.mkdir(targetDir, { recursive: true });
   await fs.writeFile(targetPath, htmlContent, 'utf8');
   return { ok: true, filePath: targetPath };

@@ -1,6 +1,6 @@
 {
-  "name": "CalCal Terminplaner",
-  "short_name": "CalCal",
+  "name": "scal Terminplaner",
+  "short_name": "scal",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#efe3d2",

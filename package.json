@@ -13,8 +13,8 @@
     "build-win-all": "electron-builder --win portable nsis --publish never"
   },
   "build": {
-    "appId": "com.calcal.desktop",
-    "productName": "CalCal",
+    "appId": "com.scal.desktop",
+    "productName": "scal",
     "files": [
       "index.html",
       "styles.css",
