@@ -7,6 +7,11 @@
   "scripts": {
     "start": "npx serve . -l 4173",
     "dev": "npx serve . -l 4173",
+    "prepare:cf": "node scripts/prepare-cf-assets.mjs",
+    "deploy": "npm run prepare:cf && wrangler deploy --config wrangler.jsonc",
+    "preview": "npm run prepare:cf && wrangler dev --config wrangler.jsonc",
+    "deploy:cf": "npm run prepare:cf && wrangler deploy --config wrangler.jsonc",
+    "preview:cf": "npm run prepare:cf && wrangler dev --config wrangler.jsonc",
     "desktop": "electron .",
     "build-win-portable": "electron-builder --win portable --publish never",
     "build-win-installer": "electron-builder --win nsis --publish never",
@@ -44,6 +49,7 @@
   },
   "devDependencies": {
     "electron": "^41.1.0",
-    "electron-builder": "^26.8.1"
+    "electron-builder": "^26.8.1",
+    "wrangler": "^4.79.0"
   }
 }

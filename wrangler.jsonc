@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "calcal",
+  "compatibility_date": "2026-03-31",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./cf-assets"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}

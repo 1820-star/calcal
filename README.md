@@ -6,6 +6,30 @@
 2. Im Browser `http://localhost:4173` öffnen.
 3. Die App speichert Termine lokal im Browser und funktioniert offline nach dem ersten Laden weiter.
 
+## Cloudflare (Workers Static Assets)
+
+### Lokal prüfen wie auf Cloudflare
+
+1. `npm install`
+2. `npm run preview:cf`
+3. Die Vorschau läuft lokal über Wrangler mit den Dateien aus `cf-assets/`.
+
+### Deploy zu Cloudflare
+
+1. Bei Cloudflare API-Token mit Worker-Rechten erstellen.
+2. Lokal einloggen (`npx wrangler login`) oder in CI folgende Secrets setzen:
+	- `CLOUDFLARE_API_TOKEN`
+	- `CLOUDFLARE_ACCOUNT_ID`
+3. Deploy starten mit `npm run deploy:cf`.
+
+Wenn du Git-Deploy in Cloudflare (Dashboard) nutzt:
+
+1. Build/Deploy Command auf `npm run deploy:cf` setzen.
+2. Nicht `npx wrangler deploy` direkt verwenden.
+3. Root Directory auf `/` lassen.
+
+Hinweis: Vor jedem Preview/Deploy werden die Web-Dateien automatisch von der Projektwurzel nach `cf-assets/` synchronisiert.
+
 ## Funktionen
 
 1. Kalender 2026 von Montag bis Freitag.
